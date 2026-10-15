@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Change this to your Docker Hub username/repository.
-        DOCKER_IMAGE = 'YOUR_DOCKERHUB_USERNAME/taskbox-backend'
+        DOCKER_IMAGE = 'tejas8401/taskbox-backend'
     }
 
     stages {
