@@ -1,0 +1,42 @@
+# Error logs
+*.log
+hs_err_pid*.log
+replay_pid*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build artifacts
+target/
+*.class
+*.jar
+!**/src/main/**/*.jar
+
+# Frontend (if using Node.js later)
+node_modules/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# Uploads
+taskbox-backend/uploads/
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+
+
