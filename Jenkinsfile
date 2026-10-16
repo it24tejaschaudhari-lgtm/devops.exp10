@@ -30,21 +30,32 @@ pipeline {
             }
         }
 
-        stage('Push to Docker Hub') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-credentials',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
-                    bat 'docker push %DOCKER_IMAGE%:%BUILD_NUMBER%'
-                    bat 'docker push %DOCKER_IMAGE%:latest'
-                    bat 'docker logout'
+      
+stage('Push to Docker Hub') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-credentials',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+        )]) {
+            powershell '''
+                $ErrorActionPreference = "Stop"
+                $env:DOCKER_PASS | docker login --username $env:DOCKER_USER --password-stdin
+                if ($LASTEXITCODE -ne 0) {
+                    exit $LASTEXITCODE
                 }
-            }
+            '''
+
+            bat 'docker push %DOCKER_IMAGE%:%BUILD_NUMBER%'
+            bat 'docker push %DOCKER_IMAGE%:latest'
+            bat 'docker logout'
         }
     }
+}
+
+            
+        
+    
 
     post {
         always {
