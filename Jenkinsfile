@@ -92,4 +92,5 @@ pipeline {
             echo 'Pipeline failed. Inspect the failed stage and Console Output.'
         }
     }
-
+}
+}
