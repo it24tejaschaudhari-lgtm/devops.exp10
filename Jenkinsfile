@@ -38,21 +38,42 @@ pipeline {
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )
-                ]) {
+                ]) 
+                      
                     powershell '''
                         $ErrorActionPreference = "Stop"
 
-                        $env:DOCKER_PASS |
-                            docker login --username $env:DOCKER_USER --password-stdin
+                        $psi = New-Object System.Diagnostics.ProcessStartInfo
+                        $psi.FileName = "docker.exe"
+                        $psi.Arguments = "login --username $env:DOCKER_USER --password-stdin"
+                        $psi.UseShellExecute = $false
+                        $psi.RedirectStandardInput = $true
+                        $psi.RedirectStandardOutput = $true
+                        $psi.RedirectStandardError = $true
+                        $psi.CreateNoWindow = $true
 
-                        if ($LASTEXITCODE -ne 0) {
-                            throw "Docker login failed. Check Jenkins credentials and network."
+                        $p = New-Object System.Diagnostics.Process
+                        $p.StartInfo = $psi
+                        [void]$p.Start()
+
+                        $p.StandardInput.WriteLine($env:DOCKER_PASS)
+                        $p.StandardInput.Close()
+
+                        $outTask = $p.StandardOutput.ReadToEndAsync()
+                        $errTask = $p.StandardError.ReadToEndAsync()
+                        $p.WaitForExit()
+
+                        $out = $outTask.Result
+                        $err = $errTask.Result
+
+                        if ($out) { Write-Output $out }
+
+                        if ($p.ExitCode -ne 0) {
+                            Write-Error "Docker login failed. Verify the Jenkins credential."
+                            exit 1
                         }
                     '''
 
-                    bat 'docker push %DOCKER_IMAGE%:%BUILD_NUMBER%'
-                    bat 'docker push %DOCKER_IMAGE%:latest'
-                    bat 'docker logout'
                 }
             }
         }
