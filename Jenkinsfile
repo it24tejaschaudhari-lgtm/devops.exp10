@@ -1,8 +1,8 @@
+
 pipeline {
     agent any
 
     environment {
-        // Change this to your Docker Hub username/repository.
         DOCKER_IMAGE = 'tejas8401/taskbox-backend'
     }
 
@@ -30,32 +30,28 @@ pipeline {
             }
         }
 
-      
-stage('Push to Docker Hub') {
-    steps {
-        withCredentials([usernamePassword(
-            credentialsId: 'dockerhub-credentials',
-            usernameVariable: 'DOCKER_USER',
-            passwordVariable: 'DOCKER_PASS'
-        )]) {
-            powershell '''
-                $ErrorActionPreference = "Stop"
-                $env:DOCKER_PASS | docker login --username $env:DOCKER_USER --password-stdin
-                if ($LASTEXITCODE -ne 0) {
-                    exit $LASTEXITCODE
-                }
-            '''
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    powershell '''
+                        $ErrorActionPreference = "Stop"
+                        $env:DOCKER_PASS | docker login --username $env:DOCKER_USER --password-stdin
+                        if ($LASTEXITCODE -ne 0) {
+                            exit $LASTEXITCODE
+                        }
+                    '''
 
-            bat 'docker push %DOCKER_IMAGE%:%BUILD_NUMBER%'
-            bat 'docker push %DOCKER_IMAGE%:latest'
-            bat 'docker logout'
+                    bat 'docker push %DOCKER_IMAGE%:%BUILD_NUMBER%'
+                    bat 'docker push %DOCKER_IMAGE%:latest'
+                    bat 'docker logout'
+                }
+            }
         }
     }
-}
-
-            
-        
-    
 
     post {
         always {
@@ -64,9 +60,11 @@ stage('Push to Docker Hub') {
                 archiveArtifacts allowEmptyArchive: true, artifacts: 'target/*.jar'
             }
         }
+
         success {
             echo 'TaskBox DevOps pipeline completed successfully.'
         }
+
         failure {
             echo 'Pipeline failed. Inspect the failed stage and Console Output.'
         }
