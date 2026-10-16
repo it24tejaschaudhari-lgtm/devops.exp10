@@ -36,14 +36,40 @@ pipeline {
                     credentialsId: 'dockerhub-credentials',
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    powershell '''
-                        $ErrorActionPreference = "Stop"
-                        $env:DOCKER_PASS | docker login --username $env:DOCKER_USER --password-stdin
-                        if ($LASTEXITCODE -ne 0) {
-                            exit $LASTEXITCODE
-                        }
-                    '''
+                )]) 
+                   
+powershell '''
+    $ErrorActionPreference = "Stop"
+
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = "docker.exe"
+    $startInfo.Arguments = "login --username $env:DOCKER_USER --password-stdin"
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardInput = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.CreateNoWindow = $true
+
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $startInfo
+    [void]$process.Start()
+
+    $process.StandardInput.WriteLine($env:DOCKER_PASS.Trim())
+    $process.StandardInput.Close()
+
+    $stdout = $process.StandardOutput.ReadToEnd()
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+
+    if ($stdout) { Write-Output $stdout }
+    if ($process.ExitCode -ne 0) {
+        Write-Error "Docker login failed. Check the Jenkins credential and network."
+        exit 1
+    }
+'''
+
+                        
+                    
 
                     bat 'docker push %DOCKER_IMAGE%:%BUILD_NUMBER%'
                     bat 'docker push %DOCKER_IMAGE%:latest'
