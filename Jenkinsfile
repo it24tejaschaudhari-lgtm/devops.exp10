@@ -30,46 +30,43 @@ pipeline {
             }
         }
 
+       
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-credentials',
+                    credentialsId: 'dockerhub-token-new',
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
-                )]) 
-                   
-powershell '''
-    $ErrorActionPreference = "Stop"
+                )]) {
+                    powershell '''
+                        $ErrorActionPreference = "Stop"
 
-    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-    $startInfo.FileName = "docker.exe"
-    $startInfo.Arguments = "login --username $env:DOCKER_USER --password-stdin"
-    $startInfo.UseShellExecute = $false
-    $startInfo.RedirectStandardInput = $true
-    $startInfo.RedirectStandardOutput = $true
-    $startInfo.RedirectStandardError = $true
-    $startInfo.CreateNoWindow = $true
+                        $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+                        $startInfo.FileName = "docker.exe"
+                        $startInfo.Arguments = "login --username $env:DOCKER_USER --password-stdin"
+                        $startInfo.UseShellExecute = $false
+                        $startInfo.RedirectStandardInput = $true
+                        $startInfo.RedirectStandardOutput = $true
+                        $startInfo.RedirectStandardError = $true
+                        $startInfo.CreateNoWindow = $true
 
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $startInfo
-    [void]$process.Start()
+                        $process = New-Object System.Diagnostics.Process
+                        $process.StartInfo = $startInfo
+                        [void]$process.Start()
 
-    $process.StandardInput.WriteLine($env:DOCKER_PASS.Trim())
-    $process.StandardInput.Close()
+                        $process.StandardInput.WriteLine($env:DOCKER_PASS.Trim())
+                        $process.StandardInput.Close()
 
-    $stdout = $process.StandardOutput.ReadToEnd()
-    $stderr = $process.StandardError.ReadToEnd()
-    $process.WaitForExit()
+                        $stdout = $process.StandardOutput.ReadToEnd()
+                        $stderr = $process.StandardError.ReadToEnd()
+                        $process.WaitForExit()
 
-    if ($stdout) { Write-Output $stdout }
-    if ($process.ExitCode -ne 0) {
-        Write-Error "Docker login failed. Check the Jenkins credential and network."
-        exit 1
-    }
-'''
-
-                        
-                    
+                        if ($stdout) { Write-Output $stdout }
+                        if ($process.ExitCode -ne 0) {
+                            Write-Error "Docker login failed. Check credentials or network."
+                            exit 1
+                        }
+                    '''
 
                     bat 'docker push %DOCKER_IMAGE%:%BUILD_NUMBER%'
                     bat 'docker push %DOCKER_IMAGE%:latest'
@@ -77,7 +74,7 @@ powershell '''
                 }
             }
         }
-    }
+
 
     post {
         always {
